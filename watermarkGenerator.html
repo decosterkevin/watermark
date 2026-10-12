@@ -1,0 +1,991 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Filigrane</title>
+<style>
+:root{
+  --paper:#f1eee6; --card:#f8f6f0; --ink:#151413; --muted:#7c776c; --line:#d8d2c4; --ghost:rgba(21,20,19,.045);
+  --accent:#e2502b;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --sans:ui-sans-serif,-apple-system,"Helvetica Neue",Arial,sans-serif;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+}
+@media (prefers-color-scheme:dark){
+  :root{--paper:#121110;--card:#191816;--ink:#ebe6db;--muted:#8a857a;--line:#2b2926;--ghost:rgba(235,230,219,.022);--accent:#ff6a3f}
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font:14px/1.45 var(--sans);-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0;background-image:var(--bgmark);pointer-events:none;z-index:0}
+button,input,select,textarea{font:inherit;color:inherit}
+.shell{position:relative;z-index:1;display:grid;grid-template-rows:auto 1fr;height:100vh;height:100dvh}
+
+/* header */
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 24px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:14px;min-width:0}
+.stamp{flex:none;width:30px;height:30px;border-radius:50%;border:1.5px solid var(--accent);color:var(--accent);display:grid;place-items:center;font:700 9px/1 var(--mono);letter-spacing:.06em;transform:rotate(-14deg)}
+.brand h1{margin:0;font:italic 400 30px/1 var(--serif);letter-spacing:-.015em}
+.brand p{margin:0;color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lang{display:flex;align-items:center;font:500 12px var(--mono)}
+.lang button{all:unset;cursor:pointer;padding:4px 6px;color:var(--muted)}
+.lang button[aria-pressed=true]{color:var(--ink);text-decoration:underline 2px var(--accent);text-underline-offset:5px}
+.lang span{color:var(--line)}
+
+/* layout */
+main{display:grid;grid-template-columns:minmax(300px,360px) minmax(0,1fr);min-height:0}
+.panel{border-right:1px solid var(--line);overflow-y:auto;min-height:0;background:color-mix(in srgb,var(--paper) 85%,transparent)}
+.stage{display:grid;grid-template-rows:minmax(0,1fr) auto auto;min-height:0;min-width:0}
+
+/* panel sections */
+details{border-bottom:1px solid var(--line)}
+summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:12px;padding:15px 22px;font:500 11px var(--mono);letter-spacing:.14em;text-transform:uppercase;user-select:none}
+summary::-webkit-details-marker{display:none}
+summary .n{color:var(--accent)}
+summary::after{content:"+";margin-left:auto;font-size:14px;color:var(--muted)}
+details[open] summary::after{content:"–"}
+.body{padding:2px 22px 20px;display:grid;gap:15px}
+.f{display:grid;gap:7px}
+.l{display:flex;justify-content:space-between;align-items:baseline;font-size:12.5px;color:var(--muted)}
+.l output{font:500 11px var(--mono);color:var(--ink)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+textarea,select,input[type=text]{width:100%;background:var(--card);border:1px solid var(--line);border-radius:0;padding:8px 10px;outline:none}
+textarea{resize:vertical;min-height:62px;font:13px/1.45 var(--mono)}
+textarea:focus,select:focus,input[type=text]:focus{border-color:var(--ink)}
+select{appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--ink) 50%),linear-gradient(-45deg,transparent 50%,var(--ink) 50%);background-position:calc(100% - 15px) 55%,calc(100% - 10px) 55%;background-size:5px 5px;background-repeat:no-repeat;padding-right:28px}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chips button{all:unset;cursor:pointer;font:11px var(--mono);padding:2px 6px;border:1px dashed var(--line);color:var(--muted)}
+.chips button:hover{border-color:var(--accent);color:var(--accent)}
+.note{font-size:12px;color:var(--muted);margin:0}
+
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:16px;background:transparent;margin:0;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:1px;background:var(--ink)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:11px;height:11px;margin-top:-5px;background:var(--paper);border:1.5px solid var(--ink);transform:rotate(45deg)}
+input[type=range]:focus-visible::-webkit-slider-thumb,input[type=range]:active::-webkit-slider-thumb{background:var(--accent);border-color:var(--accent)}
+input[type=range]::-moz-range-track{height:1px;background:var(--ink)}
+input[type=range]::-moz-range-thumb{width:9px;height:9px;border-radius:0;background:var(--paper);border:1.5px solid var(--ink);transform:rotate(45deg)}
+input[type=color]{-webkit-appearance:none;appearance:none;width:100%;height:34px;border:1px solid var(--line);background:var(--card);padding:3px;cursor:pointer}
+input[type=color]::-webkit-color-swatch-wrapper{padding:0}
+input[type=color]::-webkit-color-swatch{border:none}
+
+.seg{display:flex;border:1px solid var(--ink)}
+.seg label{flex:1;position:relative;text-align:center;padding:6px 2px;font:500 10.5px var(--mono);letter-spacing:.06em;text-transform:uppercase;cursor:pointer;white-space:nowrap}
+.seg label+label{border-left:1px solid var(--ink)}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label:has(input:checked){background:var(--ink);color:var(--paper)}
+.seg label:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:-3px}
+
+.sw{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;cursor:pointer}
+.sw input{-webkit-appearance:none;appearance:none;flex:none;width:30px;height:16px;border:1px solid var(--ink);position:relative;cursor:pointer;margin:0;transition:background .15s}
+.sw input::after{content:"";position:absolute;top:2px;left:2px;width:10px;height:10px;background:var(--ink);transition:transform .15s}
+.sw input:checked{background:var(--ink)}
+.sw input:checked::after{transform:translateX(14px);background:var(--accent)}
+
+.pos{display:grid;grid-template-columns:repeat(3,22px);gap:4px}
+.pos label{width:22px;height:22px;border:1px solid var(--line);cursor:pointer;display:grid;place-items:center}
+.pos label::after{content:"";width:5px;height:5px;background:var(--line)}
+.pos label:has(input:checked){border-color:var(--ink)}
+.pos label:has(input:checked)::after{background:var(--accent);width:8px;height:8px}
+.pos input{position:absolute;opacity:0;pointer-events:none}
+
+.logo-row{display:flex;gap:8px;align-items:center}
+.logo-row canvas{width:34px;height:34px;border:1px solid var(--line);object-fit:contain;background:repeating-conic-gradient(var(--line) 0 25%,transparent 0 50%) 0 0/8px 8px}
+
+.btn{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:9px 15px;font:500 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--ink);white-space:nowrap}
+.btn.solid{background:var(--ink);color:var(--paper)}
+.btn.solid:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn:not(.solid):hover{border-color:var(--accent);color:var(--accent)}
+.btn.ghost{border-color:transparent;color:var(--muted)}
+.btn:disabled,.btn[aria-disabled=true]{opacity:.35;pointer-events:none}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.panel-foot{padding:16px 22px 26px;display:flex;justify-content:space-between;align-items:center;gap:10px;font:11px var(--mono);color:var(--muted)}
+
+/* stage */
+.view{position:relative;min-height:0;overflow:hidden}
+.drop{position:absolute;inset:24px;border:1px dashed var(--muted);display:grid;place-content:center;justify-items:center;gap:14px;text-align:center;padding:24px}
+.drop h2{margin:0;font:italic 400 clamp(30px,4.6vw,56px)/1.05 var(--serif);letter-spacing:-.02em}
+.drop p{margin:0;color:var(--muted)}
+.drop .actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:8px}
+.drop .corner{position:absolute;font:500 10px var(--mono);color:var(--muted);letter-spacing:.12em}
+#pv{position:absolute;inset:52px 24px 24px;width:calc(100% - 48px);height:calc(100% - 76px);object-fit:contain;filter:drop-shadow(0 14px 28px rgba(0,0,0,.22));cursor:pointer;touch-action:none}
+.meta{position:absolute;top:14px;left:24px;right:24px;display:flex;align-items:center;gap:14px;font:11px var(--mono);color:var(--muted);flex-wrap:wrap}
+.meta b{font-weight:500;color:var(--ink);max-width:40ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.meta select{width:auto;padding:3px 26px 3px 8px;font:11px var(--mono)}
+.meta .sp{flex:1}
+.nav{all:unset;cursor:pointer;padding:2px 6px}
+.nav:hover{color:var(--accent)}
+
+.strip{display:flex;gap:8px;overflow-x:auto;padding:12px 24px;border-top:1px solid var(--line);scrollbar-width:thin}
+.strip:empty{display:none}
+.th{position:relative;flex:none;width:64px;height:64px;border:1px solid var(--line);padding:0;background:var(--card);cursor:pointer}
+.th canvas{width:100%;height:100%;object-fit:cover;display:block}
+.th[aria-current=true]{outline:2px solid var(--accent);outline-offset:2px;border-color:transparent}
+.th .x{position:absolute;top:-1px;right:-1px;width:18px;height:18px;background:var(--ink);color:var(--paper);font:12px/18px var(--mono);text-align:center;opacity:0}
+.th:hover .x{opacity:1}
+.th.bad{opacity:.35}
+
+.bar{position:relative;display:flex;align-items:center;gap:10px;padding:14px 24px;border-top:1px solid var(--line);flex-wrap:wrap}
+.bar .count{font:12px var(--mono);color:var(--muted);margin-right:auto}
+.bar .count b{color:var(--ink);font-weight:500}
+.progress{position:absolute;top:-1px;left:0;height:2px;background:var(--accent);width:0;transition:width .15s}
+.status{font:12px var(--mono);color:var(--accent);width:100%}
+.status:empty{display:none}
+
+.dz{position:fixed;inset:0;z-index:10;display:none;place-items:center;background:color-mix(in srgb,var(--paper) 80%,transparent);backdrop-filter:blur(3px)}
+.dz div{border:2px dashed var(--accent);padding:48px 64px;font:italic 400 34px var(--serif);color:var(--accent);transform:rotate(-2deg)}
+body.dragging .dz{display:grid}
+[hidden]{display:none!important}
+
+@media (max-width:820px){
+  .shell{height:auto}
+  main{grid-template-columns:1fr}
+  .stage{order:-1;grid-template-rows:auto auto auto}
+  .view{height:62vh;min-height:340px}
+  .panel{border-right:0;border-top:1px solid var(--line);overflow:visible}
+  header{padding:14px 16px}
+  .brand p{display:none}
+  .drop{inset:16px}
+  #pv{inset:52px 16px 16px;width:calc(100% - 32px);height:calc(100% - 68px)}
+  .meta{left:16px;right:16px}
+  .strip,.bar{padding-left:16px;padding-right:16px}
+  summary{padding:15px 16px}.body{padding:2px 16px 20px}.panel-foot{padding:16px}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header>
+    <div class="brand">
+      <div class="stamp" aria-hidden="true">F·W</div>
+      <h1>Filigrane</h1>
+      <p data-i18n="tagline"></p>
+    </div>
+    <div class="lang" role="group" aria-label="Language">
+      <button type="button" data-lang="en">EN</button><span>/</span><button type="button" data-lang="fr">FR</button>
+    </div>
+  </header>
+
+  <main>
+    <aside class="panel" id="panel">
+      <details open>
+        <summary><span class="n">01</span><span data-i18n="s1"></span></summary>
+        <div class="body">
+          <label class="f"><span class="l"><span data-i18n="text"></span></span>
+            <textarea id="text" data-k="text" rows="3" spellcheck="false"></textarea>
+          </label>
+          <div class="f">
+            <span class="l"><span data-i18n="tokens"></span></span>
+            <div class="chips" id="chips">
+              <button type="button" data-tok="{name}">{name}</button>
+              <button type="button" data-tok="{id}">{id}</button>
+              <button type="button" data-tok="{date}">{date}</button>
+              <button type="button" data-tok="{file}">{file}</button>
+              <button type="button" data-tok="©">©</button>
+            </div>
+          </div>
+          <div class="row">
+            <label class="f"><span class="l"><span data-i18n="font"></span></span>
+              <select data-k="font">
+                <option value="sans" data-i18n="f_sans"></option>
+                <option value="serif" data-i18n="f_serif"></option>
+                <option value="mono" data-i18n="f_mono"></option>
+                <option value="condensed" data-i18n="f_condensed"></option>
+                <option value="script" data-i18n="f_script"></option>
+              </select>
+            </label>
+            <label class="f"><span class="l"><span data-i18n="color"></span></span>
+              <input type="color" data-k="color">
+            </label>
+          </div>
+          <div class="f"><span class="l"><span data-i18n="weight"></span></span>
+            <div class="seg">
+              <label><input type="radio" name="weight" data-k="weight" value="300">Light</label>
+              <label><input type="radio" name="weight" data-k="weight" value="400">Reg</label>
+              <label><input type="radio" name="weight" data-k="weight" value="700">Bold</label>
+              <label><input type="radio" name="weight" data-k="weight" value="900">Black</label>
+            </div>
+          </div>
+          <label class="f"><span class="l"><span data-i18n="size"></span><output></output></span>
+            <input type="range" data-k="size" min="1" max="25" step="0.5" data-unit="%"></label>
+          <label class="f"><span class="l"><span data-i18n="opacity"></span><output></output></span>
+            <input type="range" data-k="opacity" min="3" max="100" data-unit="%"></label>
+          <label class="f"><span class="l"><span data-i18n="tracking"></span><output></output></span>
+            <input type="range" data-k="tracking" min="0" max="60" data-unit=""></label>
+          <div class="f"><span class="l"><span data-i18n="style"></span></span>
+            <div class="seg">
+              <label><input type="radio" name="style" data-k="style" value="fill"><span data-i18n="st_fill"></span></label>
+              <label><input type="radio" name="style" data-k="style" value="outline"><span data-i18n="st_outline"></span></label>
+              <label><input type="radio" name="style" data-k="style" value="dual"><span data-i18n="st_dual"></span></label>
+            </div>
+          </div>
+          <label class="f"><span class="l"><span data-i18n="blend"></span></span>
+            <select data-k="blend">
+              <option value="source-over" data-i18n="b_normal"></option>
+              <option value="overlay" data-i18n="b_overlay"></option>
+              <option value="soft-light" data-i18n="b_soft"></option>
+              <option value="difference" data-i18n="b_diff"></option>
+              <option value="multiply" data-i18n="b_mult"></option>
+              <option value="screen" data-i18n="b_screen"></option>
+            </select>
+          </label>
+          <div class="f"><span class="l"><span data-i18n="logo"></span></span>
+            <div class="logo-row">
+              <canvas id="logoThumb" width="68" height="68" hidden></canvas>
+              <label class="btn"><span data-i18n="logo_add"></span><input type="file" id="logoFile" accept="image/*" hidden></label>
+              <button type="button" class="btn ghost" id="logoRemove" hidden data-i18n="remove"></button>
+            </div>
+          </div>
+          <label class="f" id="logoSizeF" hidden><span class="l"><span data-i18n="logoSize"></span><output></output></span>
+            <input type="range" data-k="logoSize" min="2" max="40" data-unit="%"></label>
+        </div>
+      </details>
+
+      <details open>
+        <summary><span class="n">02</span><span data-i18n="s2"></span></summary>
+        <div class="body">
+          <div class="f"><span class="l"><span data-i18n="mode"></span></span>
+            <div class="seg">
+              <label><input type="radio" name="mode" data-k="mode" value="tiled"><span data-i18n="m_tiled"></span></label>
+              <label><input type="radio" name="mode" data-k="mode" value="cross"><span data-i18n="m_cross"></span></label>
+              <label><input type="radio" name="mode" data-k="mode" value="single"><span data-i18n="m_single"></span></label>
+            </div>
+          </div>
+          <div class="row" data-mode="single">
+            <div class="f"><span class="l"><span data-i18n="pos"></span></span>
+              <div class="pos">
+                <label><input type="radio" name="pos" data-k="pos" value="tl"></label><label><input type="radio" name="pos" data-k="pos" value="tc"></label><label><input type="radio" name="pos" data-k="pos" value="tr"></label>
+                <label><input type="radio" name="pos" data-k="pos" value="ml"></label><label><input type="radio" name="pos" data-k="pos" value="mc"></label><label><input type="radio" name="pos" data-k="pos" value="mr"></label>
+                <label><input type="radio" name="pos" data-k="pos" value="bl"></label><label><input type="radio" name="pos" data-k="pos" value="bc"></label><label><input type="radio" name="pos" data-k="pos" value="br"></label>
+              </div>
+            </div>
+            <label class="f"><span class="l"><span data-i18n="margin"></span><output></output></span>
+              <input type="range" data-k="margin" min="0" max="20" data-unit="%"></label>
+          </div>
+          <label class="f" data-mode="tiled single"><span class="l"><span data-i18n="rotation"></span><output></output></span>
+            <input type="range" data-k="rotation" min="-90" max="90" data-unit="°"></label>
+          <label class="f" data-mode="tiled cross"><span class="l"><span data-i18n="gapX"></span><output></output></span>
+            <input type="range" data-k="gapX" min="0" max="300" step="5" data-unit="%"></label>
+          <label class="f" data-mode="tiled"><span class="l"><span data-i18n="gapY"></span><output></output></span>
+            <input type="range" data-k="gapY" min="0" max="500" step="5" data-unit="%"></label>
+          <label class="sw" data-mode="tiled"><span data-i18n="stagger"></span><input type="checkbox" data-k="stagger"></label>
+          <label class="f" data-mode="tiled cross"><span class="l"><span data-i18n="jitter"></span><output></output></span>
+            <input type="range" data-k="jitter" min="0" max="100" data-unit="%"></label>
+        </div>
+      </details>
+
+      <details open>
+        <summary><span class="n">03</span><span data-i18n="s3"></span></summary>
+        <div class="body">
+          <label class="f"><span class="l"><span data-i18n="waves"></span><output></output></span>
+            <input type="range" data-k="waves" min="0" max="30" data-unit=""></label>
+          <label class="f"><span class="l"><span data-i18n="grain"></span><output></output></span>
+            <input type="range" data-k="grain" min="0" max="40" data-unit=""></label>
+          <label class="sw"><span data-i18n="seal"></span><input type="checkbox" data-k="seal"></label>
+          <label class="sw"><span data-i18n="micro"></span><input type="checkbox" data-k="micro"></label>
+          <label class="sw"><span data-i18n="footer"></span><input type="checkbox" data-k="footer"></label>
+          <label class="f" id="footerF"><span class="l"><span data-i18n="footerText"></span></span>
+            <input type="text" data-k="footerText" spellcheck="false"></label>
+          <p class="note" data-i18n="protect_note"></p>
+        </div>
+      </details>
+
+      <details open>
+        <summary><span class="n">04</span><span data-i18n="s4"></span></summary>
+        <div class="body">
+          <label class="f"><span class="l"><span data-i18n="recipients"></span><output id="recCount"></output></span>
+            <textarea data-k="recipients" rows="4" data-i18n-ph="rec_ph" spellcheck="false"></textarea>
+          </label>
+          <p class="note" data-i18n="rec_note"></p>
+        </div>
+      </details>
+
+      <details open>
+        <summary><span class="n">05</span><span data-i18n="s5"></span></summary>
+        <div class="body">
+          <div class="row">
+            <label class="f"><span class="l"><span data-i18n="maxEdge"></span></span>
+              <select data-k="maxEdge">
+                <option value="0" data-i18n="original"></option>
+                <option value="3000">3000 px</option>
+                <option value="2400">2400 px</option>
+                <option value="2048">2048 px</option>
+                <option value="1600">1600 px</option>
+                <option value="1280">1280 px</option>
+                <option value="1024">1024 px</option>
+                <option value="800">800 px</option>
+              </select>
+            </label>
+            <label class="f"><span class="l"><span data-i18n="format"></span></span>
+              <select data-k="format">
+                <option value="image/jpeg">JPEG</option>
+                <option value="image/webp">WebP</option>
+                <option value="image/png">PNG</option>
+              </select>
+            </label>
+          </div>
+          <label class="f" id="qualityF"><span class="l"><span data-i18n="quality"></span><output></output></span>
+            <input type="range" data-k="quality" min="30" max="100" data-unit="%"></label>
+          <label class="f"><span class="l"><span data-i18n="idDigits"></span><output></output></span>
+            <input type="range" data-k="idDigits" min="1" max="8" data-unit=""></label>
+          <label class="sw"><span data-i18n="manifest"></span><input type="checkbox" data-k="manifest"></label>
+        </div>
+      </details>
+
+      <div class="panel-foot">
+        <span data-i18n="privacy"></span>
+        <button type="button" class="btn ghost" id="reset" data-i18n="reset"></button>
+      </div>
+    </aside>
+
+    <section class="stage">
+      <div class="view" id="view">
+        <div class="drop" id="drop">
+          <span class="corner" style="top:12px;left:14px">01</span>
+          <span class="corner" style="bottom:12px;right:14px">↓</span>
+          <h2 data-i18n="drop_title"></h2>
+          <p data-i18n="drop_sub"></p>
+          <div class="actions">
+            <label class="btn solid"><span data-i18n="pick_folder"></span><input type="file" id="pickDir" webkitdirectory directory multiple hidden></label>
+            <label class="btn"><span data-i18n="pick_files"></span><input type="file" id="pickFiles" accept="image/*" multiple hidden></label>
+          </div>
+        </div>
+        <div class="meta" id="meta" hidden>
+          <button type="button" class="nav" id="prev" data-i18n-title="prev">←</button>
+          <b id="mName"></b>
+          <button type="button" class="nav" id="next" data-i18n-title="next">→</button>
+          <span id="mDims"></span>
+          <span class="sp"></span>
+          <label><span data-i18n="preview_as"></span> <select id="previewAs"></select></label>
+          <span data-i18n="hold"></span>
+        </div>
+        <canvas id="pv" hidden></canvas>
+      </div>
+      <div class="strip" id="strip"></div>
+      <div class="bar">
+        <div class="progress" id="progress"></div>
+        <span class="count" id="count"></span>
+        <label class="btn ghost" id="addMore" hidden><span>+ </span><span data-i18n="add_more"></span><input type="file" id="pickMore" accept="image/*" multiple hidden></label>
+        <button type="button" class="btn ghost" id="clear" hidden data-i18n="clear"></button>
+        <button type="button" class="btn" id="dlOne" disabled data-i18n="download_one"></button>
+        <button type="button" class="btn solid" id="export" disabled data-i18n="export"></button>
+        <button type="button" class="btn" id="cancel" hidden data-i18n="cancel"></button>
+        <div class="status" id="status" role="status"></div>
+      </div>
+    </section>
+  </main>
+</div>
+<div class="dz" aria-hidden="true"><div data-i18n="drop_here"></div></div>
+
+<script>
+'use strict';
+/* ---------- i18n ---------- */
+const I18N = {
+  en: {
+    tagline:'Watermark a whole folder before sharing it.',
+    s1:'Mark', s2:'Layout', s3:'Protection', s4:'Recipients', s5:'Output',
+    text:'Text', tokens:'Tokens — click to insert',
+    font:'Typeface', f_sans:'Sans', f_serif:'Serif', f_mono:'Mono', f_condensed:'Condensed', f_script:'Script',
+    weight:'Weight', size:'Size', tracking:'Letter spacing', color:'Colour', opacity:'Opacity',
+    style:'Style', st_fill:'Fill', st_outline:'Outline', st_dual:'Contrast',
+    blend:'Blend mode', b_normal:'Normal', b_overlay:'Overlay', b_soft:'Soft light', b_diff:'Difference', b_mult:'Multiply', b_screen:'Screen',
+    logo:'Logo (optional)', logo_add:'Add logo', remove:'Remove', logoSize:'Logo size',
+    mode:'Pattern', m_tiled:'Tiled', m_cross:'Cross', m_single:'Single',
+    pos:'Position', margin:'Margin', rotation:'Angle', gapX:'Horizontal spacing', gapY:'Vertical spacing',
+    stagger:'Offset every other row', jitter:'Randomness',
+    waves:'Security lines', grain:'Grain', seal:'Large central seal', micro:'Micro-text (traceable)',
+    footer:'Caption band', footerText:'Caption text',
+    protect_note:'No watermark is unbreakable. Full coverage, randomness and security lines make removal — even with AI tools — slow and visible. A small output size limits reuse; a per-person code discourages leaks.',
+    recipients:'One name per line', rec_ph:'Alice\nBob\nThe Martin family',
+    rec_note:'Each person gets their own copy, marked with their name and a sequential code ({id}). If a picture leaks, you know where it came from. Leave empty for a single generic copy.',
+    maxEdge:'Max size (long edge)', original:'Original', format:'Format', quality:'Quality',
+    idDigits:'Code digits ({id})', manifest:'Add manifest.csv (code ↔ person)',
+    drop_title:'Drop a folder of images', drop_sub:'Everything happens in this browser. Nothing is uploaded.',
+    pick_folder:'Choose a folder', pick_files:'Choose files', drop_here:'Release to add images',
+    preview_as:'Preview as', nobody:'— generic —', hold:'hold to compare', prev:'Previous', next:'Next',
+    export:'Export ZIP', download_one:'Download this one', add_more:'Add', clear:'Clear all', cancel:'Cancel',
+    count:'<b>{i}</b> images → <b>{n}</b> files', count_rec:'<b>{i}</b> images × <b>{r}</b> people → <b>{n}</b> files',
+    working:'Rendering {d} / {n}…', zipping:'Packing ZIP…', done:'Done — {n} files exported.', cancelled:'Cancelled.',
+    skipped:' {n} file(s) could not be read and were skipped.', none_found:'No supported images found.',
+    privacy:'100 % local · EXIF & GPS stripped', reset:'Reset',
+  },
+  fr: {
+    tagline:'Filigranez un dossier entier avant de le partager.',
+    s1:'Marque', s2:'Disposition', s3:'Protection', s4:'Destinataires', s5:'Export',
+    text:'Texte', tokens:'Variables — cliquer pour insérer',
+    font:'Police', f_sans:'Sans', f_serif:'Serif', f_mono:'Mono', f_condensed:'Condensée', f_script:'Manuscrite',
+    weight:'Graisse', size:'Taille', tracking:'Interlettrage', color:'Couleur', opacity:'Opacité',
+    style:'Style', st_fill:'Plein', st_outline:'Contour', st_dual:'Contraste',
+    blend:'Mode de fusion', b_normal:'Normal', b_overlay:'Incrustation', b_soft:'Lumière douce', b_diff:'Différence', b_mult:'Produit', b_screen:'Superposition',
+    logo:'Logo (facultatif)', logo_add:'Ajouter un logo', remove:'Retirer', logoSize:'Taille du logo',
+    mode:'Motif', m_tiled:'Mosaïque', m_cross:'Croix', m_single:'Unique',
+    pos:'Position', margin:'Marge', rotation:'Angle', gapX:'Espacement horizontal', gapY:'Espacement vertical',
+    stagger:'Décaler une ligne sur deux', jitter:'Aléatoire',
+    waves:'Lignes de sécurité', grain:'Grain', seal:'Grand sceau central', micro:'Micro-texte (traçable)',
+    footer:'Bandeau de légende', footerText:'Texte de la légende',
+    protect_note:'Aucun filigrane n’est inviolable. Une couverture totale, de l’aléatoire et des lignes de sécurité rendent la suppression — même par IA — longue et visible. Une petite taille limite la réutilisation ; un code par personne dissuade les fuites.',
+    recipients:'Un nom par ligne', rec_ph:'Alice\nBob\nFamille Martin',
+    rec_note:'Chaque personne reçoit sa propre copie, marquée de son nom et d’un code séquentiel ({id}). Si une photo fuite, vous savez d’où elle vient. Laisser vide pour une seule copie générique.',
+    maxEdge:'Taille max (grand côté)', original:'Originale', format:'Format', quality:'Qualité',
+    idDigits:'Chiffres du code ({id})', manifest:'Ajouter manifest.csv (code ↔ personne)',
+    drop_title:'Déposez un dossier d’images', drop_sub:'Tout se passe dans ce navigateur. Rien n’est envoyé.',
+    pick_folder:'Choisir un dossier', pick_files:'Choisir des fichiers', drop_here:'Relâchez pour ajouter',
+    preview_as:'Aperçu pour', nobody:'— générique —', hold:'maintenir pour comparer', prev:'Précédente', next:'Suivante',
+    export:'Exporter le ZIP', download_one:'Télécharger celle-ci', add_more:'Ajouter', clear:'Tout retirer', cancel:'Annuler',
+    count:'<b>{i}</b> images → <b>{n}</b> fichiers', count_rec:'<b>{i}</b> images × <b>{r}</b> personnes → <b>{n}</b> fichiers',
+    working:'Rendu {d} / {n}…', zipping:'Création du ZIP…', done:'Terminé — {n} fichiers exportés.', cancelled:'Annulé.',
+    skipped:' {n} fichier(s) illisible(s) ignoré(s).', none_found:'Aucune image compatible trouvée.',
+    privacy:'100 % local · EXIF & GPS supprimés', reset:'Réinitialiser',
+  }
+};
+const TEXT_DEF = { en:'PRIVATE COPY\n{name} · #{id}', fr:'COPIE PRIVÉE\n{name} · #{id}' };
+const FOOT_DEF = { en:'Private copy · {name} · {date} · #{id}', fr:'Copie privée · {name} · {date} · #{id}' };
+
+const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
+const store = {
+  get(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch{ return null; } },
+  set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} },
+  del(k){ try{ localStorage.removeItem(k); }catch{} }
+};
+let lang = store.get('fil.lang') || ((navigator.language||'').toLowerCase().startsWith('fr') ? 'fr' : 'en');
+const t = (k, v={}) => (I18N[lang][k] ?? I18N.en[k] ?? k).replace(/\{(\w+)\}/g, (m,x) => x in v ? v[x] : m);
+
+function defaults(){
+  return { text:TEXT_DEF[lang], font:'sans', color:'#ffffff', weight:'700', size:5, opacity:30, tracking:8,
+    style:'dual', blend:'source-over', logoSize:10,
+    mode:'tiled', pos:'br', margin:4, rotation:-28, gapX:70, gapY:220, stagger:true, jitter:25,
+    waves:6, grain:6, seal:false, micro:true, footer:true, footerText:FOOT_DEF[lang],
+    recipients:'', maxEdge:'1600', format:'image/jpeg', quality:82, idDigits:3, manifest:true };
+}
+
+/* ---------- settings <-> DOM ---------- */
+function readSettings(){
+  const s = {};
+  for (const el of $$('[data-k]')) {
+    const k = el.dataset.k;
+    if (el.type === 'radio') { if (el.checked) s[k] = el.value; }
+    else if (el.type === 'checkbox') s[k] = el.checked;
+    else if (el.type === 'range') s[k] = +el.value;
+    else s[k] = el.value;
+  }
+  return s;
+}
+function applySettings(s){
+  for (const el of $$('[data-k]')) {
+    const k = el.dataset.k; if (!(k in s)) continue;
+    if (el.type === 'radio') el.checked = el.value === String(s[k]);
+    else if (el.type === 'checkbox') el.checked = !!s[k];
+    else el.value = s[k];
+  }
+}
+function syncUI(){
+  S = readSettings();
+  for (const el of $$('input[type=range]')) {
+    const o = el.closest('.f')?.querySelector('output'); if (o) o.textContent = el.value + (el.dataset.unit || '');
+  }
+  for (const el of $$('[data-mode]')) el.hidden = !el.dataset.mode.split(' ').includes(S.mode);
+  $('#qualityF').hidden = S.format === 'image/png';
+  $('#footerF').hidden = !S.footer;
+  $('#logoSizeF').hidden = !logo;
+  const rc = recipients().length; $('#recCount').textContent = rc ? rc : '';
+  refreshPreviewAs(); updateCount(); updateBgMark();
+}
+
+/* ---------- state ---------- */
+let S = {}, images = [], cur = -1, logo = null, busy = false, cancelFlag = false;
+
+const FONTS = {
+  sans:'"Helvetica Neue",Helvetica,Arial,sans-serif',
+  serif:'Didot,"Bodoni 72",Georgia,"Times New Roman",serif',
+  mono:'ui-monospace,Menlo,Consolas,"Courier New",monospace',
+  condensed:'"Avenir Next Condensed","Arial Narrow","Roboto Condensed",Impact,sans-serif',
+  script:'"Snell Roundhand","Segoe Script","Brush Script MT",cursive'
+};
+
+const recipients = () => (S.recipients || '').split('\n').map(x => x.trim()).filter(Boolean)
+  .filter((x, i, a) => a.indexOf(x) === i);
+
+/* ---------- helpers ---------- */
+function hash32(str){ let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+function mulberry32(a){ return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let x = Math.imul(a ^ a >>> 15, 1 | a); x = x + Math.imul(x ^ x >>> 7, 61 | x) ^ x; return ((x ^ x >>> 14) >>> 0) / 4294967296; }; }
+// Sequential code, in export order (image by image, then recipient by recipient)
+function makeId(rec, index){
+  const r = recipients(), seq = index * Math.max(1, r.length) + Math.max(0, r.indexOf(rec)) + 1;
+  return String(seq).padStart(S.idDigits || 3, '0');
+}
+const baseName = n => n.replace(/\.[^.]+$/, '');
+const today = () => new Date().toLocaleDateString(lang === 'fr' ? 'fr-FR' : 'en-GB', { day:'numeric', month:'short', year:'numeric' });
+function tokens(rec, file, index){ return { name:rec || '', date:today(), id:makeId(rec || '', index), file:baseName(file.name), n:String(index + 1).padStart(3, '0') }; }
+const fillTok = (s, tk) => s.replace(/\{(name|date|id|file|n)\}/g, (m, k) => tk[k] ?? '');
+const SEP = '[·•|—–]';
+function tidy(line){
+  return line.replace(new RegExp('\\s*' + SEP + '\\s*(?=' + SEP + '|$)', 'g'), '')
+             .replace(new RegExp('^\\s*' + SEP + '\\s*'), '')
+             .replace(/#(?=\s|$)/g, '').replace(/\s{2,}/g, ' ').trim();
+}
+const buildLines = (text, tk) => text.split('\n').map(l => tidy(fillTok(l, tk))).filter(Boolean);
+function contrastOf(hex){
+  const n = parseInt(hex.slice(1), 16), r = n >> 16 & 255, g = n >> 8 & 255, b = n & 255;
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.55 ? '#000000' : '#ffffff';
+}
+const safeName = s => s.replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_').replace(/\s+/g, ' ').trim();
+const extOf = mime => ({ 'image/jpeg':'jpg', 'image/webp':'webp', 'image/png':'png' })[mime] || 'jpg';
+const toBlob = (cv, mime, q) => new Promise((res, rej) => cv.toBlob(b => b ? res(b) : rej(new Error('encode')), mime, q));
+function download(blob, name){
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 30000);
+}
+async function decode(file){
+  try { return await createImageBitmap(file, { imageOrientation:'from-image' }); }
+  catch {
+    const url = URL.createObjectURL(file);
+    try { const img = new Image(); img.src = url; await img.decode(); return img; }
+    finally { setTimeout(() => URL.revokeObjectURL(url), 1000); }
+  }
+}
+
+/* ---------- rendering ---------- */
+function makeBlock(ctx, lines, fs, base){
+  const font = `${S.weight} ${fs}px ${FONTS[S.font]}`;
+  const ls = (fs * S.tracking / 100) + 'px';
+  ctx.font = font; if ('letterSpacing' in ctx) ctx.letterSpacing = ls;
+  const lh = fs * 1.18;
+  let tw = 0; for (const l of lines) tw = Math.max(tw, ctx.measureText(l).width);
+  let lgH = 0, lgW = 0;
+  if (logo) { lgH = base * S.logoSize / 100; lgW = lgH * logo.width / logo.height; }
+  const gap = logo && lines.length ? fs * 0.35 : 0;
+  const w = Math.max(tw, lgW, 1), h = Math.max(lines.length * lh + lgH + gap, 1);
+  const stroke = contrastOf(S.color);
+  return { w, h, draw(c, x, y, rot, alpha, scale = 1){
+    c.save(); c.translate(x, y); if (rot) c.rotate(rot); if (scale !== 1) c.scale(scale, scale);
+    c.globalAlpha = Math.max(0, Math.min(1, alpha));
+    let cy = -h / 2;
+    if (logo) { c.drawImage(logo, -lgW / 2, cy, lgW, lgH); cy += lgH + gap; }
+    c.font = font; if ('letterSpacing' in c) c.letterSpacing = ls;
+    c.textAlign = 'center'; c.textBaseline = 'middle'; c.lineJoin = 'round';
+    for (const l of lines) {
+      const ly = cy + lh / 2;
+      if (S.style !== 'fill') { c.lineWidth = fs * (S.style === 'dual' ? 0.09 : 0.045); c.strokeStyle = S.style === 'dual' ? stroke : S.color; c.strokeText(l, 0, ly); }
+      if (S.style !== 'outline') { c.fillStyle = S.color; c.fillText(l, 0, ly); }
+      cy += lh;
+    }
+    c.restore();
+  }};
+}
+
+function drawTiled(ctx, W, H, B, rng){
+  const rot = S.rotation * Math.PI / 180, j = S.jitter / 100, op = S.opacity / 100;
+  let sx = B.w * (1 + S.gapX / 100), sy = B.h * (1 + S.gapY / 100);
+  const R = Math.hypot(W, H) / 2;
+  const est = (2 * R / sx + 3) * (2 * R / sy + 3);
+  if (est > 5000) { const k = Math.sqrt(est / 5000); sx *= k; sy *= k; }
+  const nx = Math.ceil(R / sx) + 1, ny = Math.ceil(R / sy) + 1;
+  ctx.save(); ctx.translate(W / 2, H / 2); ctx.rotate(rot);
+  for (let r = -ny; r <= ny; r++) {
+    const off = S.stagger && (r & 1) ? sx / 2 : 0;
+    for (let c = -nx; c <= nx; c++) {
+      const dx = (rng() - .5) * j * sx * .6, dy = (rng() - .5) * j * sy * .6, dr = (rng() - .5) * j * .5, da = rng() * j * .55;
+      B.draw(ctx, c * sx + off + dx, r * sy + dy, dr, op * (1 - da));
+    }
+  }
+  ctx.restore();
+}
+function drawCross(ctx, W, H, B, rng){
+  const j = S.jitter / 100, op = S.opacity / 100, len = Math.hypot(W, H);
+  const step = B.w * (1 + S.gapX / 100), n = Math.ceil(len / 2 / step) + 1;
+  for (const sign of [1, -1]) {
+    ctx.save(); ctx.translate(W / 2, H / 2); ctx.rotate(Math.atan2(H, W) * sign);
+    for (let i = -n; i <= n; i++) {
+      const dx = (rng() - .5) * j * step * .4, dy = (rng() - .5) * j * B.h * .8, dr = (rng() - .5) * j * .3, da = rng() * j * .5;
+      B.draw(ctx, i * step + (sign < 0 ? step / 2 : 0) + dx, dy, dr, op * (1 - da));
+    }
+    ctx.restore();
+  }
+}
+function drawSingle(ctx, W, H, B){
+  const rot = S.rotation * Math.PI / 180, m = Math.min(W, H) * S.margin / 100;
+  const c = Math.abs(Math.cos(rot)), s = Math.abs(Math.sin(rot));
+  const bw = B.w * c + B.h * s, bh = B.w * s + B.h * c;
+  const col = 'lcr'.indexOf(S.pos[1]), row = 'tmb'.indexOf(S.pos[0]);
+  const x = col === 0 ? m + bw / 2 : col === 1 ? W / 2 : W - m - bw / 2;
+  const y = row === 0 ? m + bh / 2 : row === 1 ? H / 2 : H - m - bh / 2;
+  B.draw(ctx, x, y, rot, S.opacity / 100);
+}
+function drawWaves(ctx, W, H, rng, base){
+  const n = S.waves; if (!n) return;
+  ctx.save(); ctx.strokeStyle = S.color; ctx.globalAlpha = Math.min(1, S.opacity / 100 * .55);
+  ctx.lineWidth = Math.max(.6, base * .0013);
+  for (const vertical of [false, true]) {
+    const L = vertical ? H : W, D = vertical ? W : H, st = Math.max(2, L / 700);
+    for (let i = 0; i < n; i++) {
+      const y0 = (i + .5) * D / n, amp = D / n * (.5 + rng() * .9), f = 1.2 + rng() * 2.6, ph = rng() * 6.283, f2 = f * 2.7, ph2 = rng() * 6.283;
+      ctx.beginPath();
+      for (let p = 0; p <= L + st; p += st) {
+        const q = y0 + amp * Math.sin(p / L * 6.283 * f + ph) + amp * .35 * Math.sin(p / L * 6.283 * f2 + ph2);
+        const X = vertical ? q : p, Y = vertical ? p : q;
+        p ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y);
+      }
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+function drawMicro(ctx, W, H, lines, tk, base){
+  const fs = Math.max(5, base * .011);
+  ctx.save(); ctx.font = `500 ${fs}px ${FONTS.mono}`; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+  if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+  ctx.fillStyle = S.color; ctx.globalAlpha = Math.min(.45, S.opacity / 100 * .9 + .05);
+  const unit = ` ${(lines.join(' · ') || '©')} · #${tk.id}${tk.name ? ' · ' + tk.name : ''} · ${tk.file} ·`;
+  const uw = ctx.measureText(unit).width || 1, row = unit.repeat(Math.ceil(W / uw) + 2), rows = 11;
+  for (let i = 0; i < rows; i++) ctx.fillText(row, -((i * uw * .37) % uw), (i + .5) * H / rows);
+  ctx.restore();
+}
+function addGrain(ctx, W, H, amt, seed){
+  if (!amt) return;
+  const d = ctx.getImageData(0, 0, W, H), p = d.data, a = amt * 2.4;
+  let x = seed | 1;
+  for (let i = 0; i < p.length; i += 4) {
+    x ^= x << 13; x ^= x >>> 17; x ^= x << 5;
+    const n = ((x >>> 0) / 4294967296 - .5) * a;
+    p[i] += n; p[i + 1] += n; p[i + 2] += n;
+  }
+  ctx.putImageData(d, 0, 0);
+}
+function drawFooter(ctx, W, H, text, base){
+  if (!text) return;
+  const bh = Math.max(14, base * .04);
+  ctx.save(); ctx.globalAlpha = 1; ctx.fillStyle = 'rgba(12,12,12,.62)'; ctx.fillRect(0, H - bh, W, bh);
+  ctx.font = `500 ${bh * .42}px ${FONTS.mono}`; if ('letterSpacing' in ctx) ctx.letterSpacing = (bh * .02) + 'px';
+  ctx.fillStyle = '#fff'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+  ctx.fillText(text, bh * .5, H - bh / 2, W - bh);
+  ctx.restore();
+}
+function outDims(w, h){
+  const long = Math.max(w, h), me = +S.maxEdge;
+  const k = me > 0 && long > me ? me / long : 1;
+  return [Math.max(1, Math.round(w * k)), Math.max(1, Math.round(h * k))];
+}
+/* src may be a pre-scaled preview; ow/oh = original dims so output size is exact */
+function render(canvas, src, ow, oh, info, cap = Infinity){
+  let [W, H] = outDims(ow, oh);
+  const k = Math.min(1, cap / Math.max(W, H)); W = Math.max(1, Math.round(W * k)); H = Math.max(1, Math.round(H * k));
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(src, 0, 0, W, H);
+  if (info.bare) return;
+  const base = Math.min(W, H), tk = tokens(info.rec, info.file, info.index);
+  const lines = buildLines(S.text, tk);
+  const rng = mulberry32(hash32(tk.id + tk.file));
+  ctx.globalCompositeOperation = S.blend;
+  drawWaves(ctx, W, H, rng, base);
+  if (lines.length || logo) {
+    const B = makeBlock(ctx, lines, base * S.size / 100, base);
+    if (S.mode === 'tiled') drawTiled(ctx, W, H, B, rng);
+    else if (S.mode === 'cross') drawCross(ctx, W, H, B, rng);
+    else drawSingle(ctx, W, H, B);
+    if (S.seal) {
+      const sc = Math.min(W * .62 / B.w, H * .42 / B.h);
+      B.draw(ctx, W / 2, H / 2, S.mode === 'cross' ? 0 : S.rotation * Math.PI / 180, Math.min(1, S.opacity / 100 * 1.1), sc);
+    }
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  if (S.micro) drawMicro(ctx, W, H, lines, tk, base);
+  addGrain(ctx, W, H, S.grain, hash32(tk.id));
+  if (S.footer) drawFooter(ctx, W, H, tidy(fillTok(S.footerText, tk)), base);
+}
+
+/* ---------- files ---------- */
+const IMG_RE = /\.(jpe?g|png|webp|gif|bmp|avif|heic|heif|tiff?)$/i;
+async function walk(entry, out){
+  if (entry.isFile) {
+    try { out.push(await new Promise((res, rej) => entry.file(res, rej))); } catch {}
+  } else if (entry.isDirectory) {
+    const reader = entry.createReader();
+    for (;;) {
+      const batch = await new Promise(res => reader.readEntries(res, () => res([])));
+      if (!batch.length) break;
+      for (const e of batch) await walk(e, out);
+    }
+  }
+}
+async function filesFromDrop(dt){
+  const items = [...(dt.items || [])].filter(i => i.kind === 'file');
+  const entries = items.map(i => i.webkitGetAsEntry ? i.webkitGetAsEntry() : null);
+  const plain = items.map(i => i.getAsFile());
+  if (!entries.some(Boolean)) return [...dt.files];
+  const out = [];
+  for (let i = 0; i < entries.length; i++) entries[i] ? await walk(entries[i], out) : plain[i] && out.push(plain[i]);
+  return out;
+}
+function addFiles(list){
+  const known = new Set(images.map(x => x.key));
+  const fresh = [...list]
+    .filter(f => !f.name.startsWith('.') && (IMG_RE.test(f.name) || (f.type || '').startsWith('image/')))
+    .filter(f => { const k = (f.webkitRelativePath || f.name) + '|' + f.size; if (known.has(k)) return false; known.add(k); f._key = k; return true; })
+    .sort((a, b) => (a.webkitRelativePath || a.name).localeCompare(b.webkitRelativePath || b.name, undefined, { numeric:true }));
+  if (!fresh.length) { if (!images.length) status(t('none_found')); return; }
+  for (const f of fresh) {
+    const el = document.createElement('button'); el.type = 'button'; el.className = 'th'; el.title = f.name;
+    const c = document.createElement('canvas'); c.width = c.height = 128; el.append(c);
+    const x = document.createElement('span'); x.className = 'x'; x.textContent = '×'; el.append(x);
+    const item = { file:f, key:f._key, el, canvas:c, bad:false };
+    el.addEventListener('click', e => { const i = images.indexOf(item); if (e.target === x) removeAt(i); else select(i); });
+    images.push(item); $('#strip').append(el); thumbQ.push(item);
+  }
+  pumpThumbs();
+  if (cur < 0) select(0); else updateCount();
+  status('');
+}
+function removeAt(i){
+  const [it] = images.splice(i, 1); it.el.remove();
+  if (!images.length) { cur = -1; showEmpty(); updateCount(); return; }
+  select(Math.min(i <= cur ? Math.max(cur - 1, 0) : cur, images.length - 1));
+}
+const thumbQ = []; let thumbBusy = false;
+async function pumpThumbs(){
+  if (thumbBusy) return; thumbBusy = true;
+  while (thumbQ.length) {
+    const it = thumbQ.shift(); if (!images.includes(it)) continue;
+    try {
+      const b = await decode(it.file), s = 128 / Math.min(b.width, b.height);
+      const g = it.canvas.getContext('2d'); g.imageSmoothingQuality = 'high';
+      g.drawImage(b, (128 - b.width * s) / 2, (128 - b.height * s) / 2, b.width * s, b.height * s);
+      b.close?.();
+    } catch { it.bad = true; it.el.classList.add('bad'); }
+  }
+  thumbBusy = false;
+}
+
+/* ---------- preview ---------- */
+const pv = $('#pv'); const PREVIEW_CAP = 1800;
+let pvCache = null, pvReq = 0, raf = 0;
+function showEmpty(){ $('#drop').hidden = false; pv.hidden = true; $('#meta').hidden = true; $('#addMore').hidden = $('#clear').hidden = true; pvCache = null; }
+function select(i){
+  cur = i;
+  images.forEach((it, k) => it.el.setAttribute('aria-current', k === i));
+  images[i]?.el.scrollIntoView({ block:'nearest', inline:'nearest' });
+  $('#drop').hidden = true; pv.hidden = false; $('#meta').hidden = false; $('#addMore').hidden = $('#clear').hidden = false;
+  updateCount(); schedule();
+}
+function schedule(){ cancelAnimationFrame(raf); raf = requestAnimationFrame(() => renderPreview()); }
+async function renderPreview(bare = false){
+  const it = images[cur]; if (!it) return;
+  const req = ++pvReq;
+  if (!pvCache || pvCache.item !== it) {
+    let b; try { b = await decode(it.file); } catch { it.bad = true; it.el.classList.add('bad'); $('#mName').textContent = it.file.name + ' ✕'; return; }
+    if (req !== pvReq) { b.close?.(); return; }
+    const ow = b.width, oh = b.height, k = Math.min(1, PREVIEW_CAP / Math.max(ow, oh));
+    const c = document.createElement('canvas'); c.width = Math.round(ow * k); c.height = Math.round(oh * k);
+    const g = c.getContext('2d'); g.imageSmoothingQuality = 'high'; g.drawImage(b, 0, 0, c.width, c.height); b.close?.();
+    pvCache = { item:it, src:c, ow, oh };
+  }
+  render(pv, pvCache.src, pvCache.ow, pvCache.oh, { rec:$('#previewAs').value, file:it.file, index:cur, bare }, PREVIEW_CAP);
+  const [W, H] = outDims(pvCache.ow, pvCache.oh);
+  $('#mName').textContent = it.file.name;
+  $('#mDims').textContent = `${pvCache.ow}×${pvCache.oh} → ${W}×${H} · ${extOf(S.format).toUpperCase()}${S.format !== 'image/png' ? ' ' + S.quality + '%' : ''}`;
+}
+function refreshPreviewAs(){
+  const sel = $('#previewAs'), prev = sel.value, r = recipients();
+  const opts = r.length ? r : [''];
+  const sig = opts.join('\n') + lang;
+  if (sel.dataset.sig === sig) return; sel.dataset.sig = sig;
+  sel.innerHTML = '';
+  for (const n of opts) { const o = document.createElement('option'); o.value = n; o.textContent = n || t('nobody'); sel.append(o); }
+  if (opts.includes(prev)) sel.value = prev;
+}
+function updateCount(){
+  const i = images.length, r = recipients().length, n = i * Math.max(1, r);
+  $('#count').innerHTML = i ? (r ? t('count_rec', { i, r, n }) : t('count', { i, n })) : '';
+  $('#export').disabled = !i || busy; $('#dlOne').disabled = !i || busy;
+}
+function status(msg){ $('#status').textContent = msg; }
+
+/* ---------- ZIP (store, no deps) ---------- */
+const CRC = (() => { const tb = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; tb[n] = c >>> 0; } return tb; })();
+function crc32(u8){ let c = 0xFFFFFFFF; for (let i = 0; i < u8.length; i++) c = CRC[(c ^ u8[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+class Zip {
+  constructor(){ this.parts = []; this.cd = []; this.off = 0; this.n = 0; this.names = new Set(); }
+  unique(name){
+    let n = name, i = 2; const dot = name.lastIndexOf('.');
+    while (this.names.has(n.toLowerCase())) n = dot > 0 ? `${name.slice(0, dot)}-${i++}${name.slice(dot)}` : `${name}-${i++}`;
+    this.names.add(n.toLowerCase()); return n;
+  }
+  add(name, u8, blob){
+    const nm = new TextEncoder().encode(name), crc = crc32(u8), d = new Date(), size = u8.length;
+    const time = d.getHours() << 11 | d.getMinutes() << 5 | d.getSeconds() >> 1;
+    const date = (d.getFullYear() - 1980) << 9 | (d.getMonth() + 1) << 5 | d.getDate();
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true); lh.setUint16(8, 0, true);
+    lh.setUint16(10, time, true); lh.setUint16(12, date, true); lh.setUint32(14, crc, true);
+    lh.setUint32(18, size, true); lh.setUint32(22, size, true); lh.setUint16(26, nm.length, true); lh.setUint16(28, 0, true);
+    this.parts.push(lh.buffer, nm, blob || u8);
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true); ch.setUint16(10, 0, true);
+    ch.setUint16(12, time, true); ch.setUint16(14, date, true); ch.setUint32(16, crc, true);
+    ch.setUint32(20, size, true); ch.setUint32(24, size, true); ch.setUint16(28, nm.length, true);
+    ch.setUint32(42, this.off, true);
+    this.cd.push(ch.buffer, nm);
+    this.off += 30 + nm.length + size; this.n++;
+  }
+  blob(){
+    const cdSize = this.cd.reduce((s, p) => s + p.byteLength, 0), e = new DataView(new ArrayBuffer(22));
+    e.setUint32(0, 0x06054b50, true); e.setUint16(8, this.n, true); e.setUint16(10, this.n, true);
+    e.setUint32(12, cdSize, true); e.setUint32(16, this.off, true);
+    return new Blob([...this.parts, ...this.cd, e.buffer], { type:'application/zip' });
+  }
+}
+const slugify = s => s.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+  .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 120);
+function outName(tk, mime){
+  return (slugify(buildLines(S.text || '', tk).join(' ')) || slugify(tk.file) || 'image') + '.' + extOf(mime);
+}
+
+/* ---------- export ---------- */
+function setBusy(b){
+  busy = b; $('#cancel').hidden = !b; $('#export').hidden = b; $('#dlOne').hidden = b; updateCount();
+  if (!b) setTimeout(() => { $('#progress').style.width = '0'; }, 800);
+}
+async function exportZip(){
+  if (busy || !images.length) return;
+  S = readSettings();
+  const rec = recipients(), list = rec.length ? rec : [''], total = images.length * list.length;
+  const zip = new Zip(), cv = document.createElement('canvas'), rows = [['code', 'recipient', 'source', 'output']];
+  let done = 0, failed = 0; cancelFlag = false; setBusy(true);
+  for (let i = 0; i < images.length && !cancelFlag; i++) {
+    const it = images[i]; let src;
+    try { src = await decode(it.file); } catch { failed++; done += list.length; continue; }
+    for (const r of list) {
+      if (cancelFlag) break;
+      render(cv, src, src.width, src.height, { rec:r, file:it.file, index:i });
+      const blob = await toBlob(cv, S.format, S.quality / 100);
+      const tk = tokens(r, it.file, i);
+      const folder = rec.length > 1 ? safeName(r) + '/' : '';
+      const name = zip.unique(folder + outName(tk, blob.type));
+      zip.add(name, new Uint8Array(await blob.arrayBuffer()), blob);
+      rows.push([tk.id, r, it.file.webkitRelativePath || it.file.name, name]);
+      done++;
+      $('#progress').style.width = (done / total * 100) + '%';
+      status(t('working', { d:done, n:total }));
+    }
+    src.close?.();
+  }
+  cv.width = cv.height = 0;
+  if (cancelFlag) { status(t('cancelled')); setBusy(false); return; }
+  status(t('zipping'));
+  if (S.manifest) {
+    const csv = '﻿' + rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+    zip.add(zip.unique('manifest.csv'), new TextEncoder().encode(csv));
+  }
+  const stamp = new Date().toISOString().slice(0, 16).replace(/[T:]/g, '-');
+  download(zip.blob(), `filigrane_${stamp}.zip`);
+  status(t('done', { n:zip.n - (S.manifest ? 1 : 0) }) + (failed ? t('skipped', { n:failed }) : ''));
+  setBusy(false);
+}
+async function downloadOne(){
+  const it = images[cur]; if (!it || busy) return;
+  S = readSettings();
+  try {
+    const src = await decode(it.file), cv = document.createElement('canvas'), r = $('#previewAs').value;
+    render(cv, src, src.width, src.height, { rec:r, file:it.file, index:cur }); src.close?.();
+    const blob = await toBlob(cv, S.format, S.quality / 100);
+    download(blob, outName(tokens(r, it.file, cur), blob.type));
+  } catch { status(t('skipped', { n:1 }).trim()); }
+}
+
+/* ---------- logo ---------- */
+async function setLogo(src, persist){
+  logo = src;
+  const th = $('#logoThumb'); th.hidden = !logo; $('#logoRemove').hidden = !logo;
+  const g = th.getContext('2d'); g.clearRect(0, 0, 68, 68);
+  if (logo) {
+    const k = Math.min(68 / logo.width, 68 / logo.height);
+    g.drawImage(logo, (68 - logo.width * k) / 2, (68 - logo.height * k) / 2, logo.width * k, logo.height * k);
+    if (persist) {
+      const c = document.createElement('canvas'), m = Math.min(1, 800 / Math.max(logo.width, logo.height));
+      c.width = Math.round(logo.width * m); c.height = Math.round(logo.height * m);
+      c.getContext('2d').drawImage(logo, 0, 0, c.width, c.height);
+      store.set('fil.logo', c.toDataURL('image/png'));
+    }
+  } else store.del('fil.logo');
+  syncUI(); schedule();
+}
+
+/* ---------- background mark (live echo of your text) ---------- */
+function updateBgMark(){
+  const raw = (S.text || '').split('\n')[0].replace(/\{[^}]*\}/g, '').replace(/[·#]/g, '').trim() || 'Filigrane';
+  const esc = raw.replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&apos;' })[c]).slice(0, 40);
+  const col = getComputedStyle(document.documentElement).getPropertyValue('--ghost').trim();
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='420' height='240'><g transform='rotate(-22 210 120)' font-family='Georgia,serif' font-style='italic' font-size='24' fill='${col}'><text x='10' y='70'>${esc}</text><text x='220' y='190'>${esc}</text></g></svg>`;
+  document.body.style.setProperty('--bgmark', `url("data:image/svg+xml,${encodeURIComponent(svg)}")`);
+}
+
+/* ---------- language ---------- */
+function applyLang(){
+  document.documentElement.lang = lang;
+  $$('[data-i18n]').forEach(el => el.textContent = t(el.dataset.i18n));
+  $$('[data-i18n-ph]').forEach(el => el.placeholder = t(el.dataset.i18nPh));
+  $$('[data-i18n-title]').forEach(el => el.title = t(el.dataset.i18nTitle));
+  $$('[data-lang]').forEach(b => b.setAttribute('aria-pressed', b.dataset.lang === lang));
+  $$('[data-i18n="rec_note"]').forEach(el => el.textContent = t('rec_note', { id:'{id}' }));
+  $('#previewAs').dataset.sig = '';
+}
+
+/* ---------- events ---------- */
+const saveSettings = () => store.set('fil.settings', readSettings());
+$('#panel').addEventListener('input', e => { if (!e.target.dataset.k) return; syncUI(); saveSettings(); schedule(); });
+$('#panel').addEventListener('change', e => { if (!e.target.dataset.k) return; syncUI(); saveSettings(); schedule(); });
+$('#chips').addEventListener('click', e => {
+  const tok = e.target.dataset?.tok; if (!tok) return;
+  const ta = $('#text'), a = ta.selectionStart, b = ta.selectionEnd;
+  ta.value = ta.value.slice(0, a) + tok + ta.value.slice(b); ta.focus(); ta.selectionStart = ta.selectionEnd = a + tok.length;
+  ta.dispatchEvent(new Event('input', { bubbles:true }));
+});
+$$('[data-lang]').forEach(b => b.addEventListener('click', () => {
+  const old = lang; lang = b.dataset.lang; store.set('fil.lang', lang);
+  const s = readSettings();
+  if (s.text === TEXT_DEF[old]) $('#text').value = TEXT_DEF[lang];
+  if (s.footerText === FOOT_DEF[old]) $('[data-k=footerText]').value = FOOT_DEF[lang];
+  applyLang(); syncUI(); saveSettings(); schedule();
+}));
+$('#reset').addEventListener('click', () => { const r = S.recipients; applySettings({ ...defaults(), recipients:r }); syncUI(); saveSettings(); schedule(); });
+$('#previewAs').addEventListener('change', schedule);
+$('#prev').addEventListener('click', () => images.length && select((cur - 1 + images.length) % images.length));
+$('#next').addEventListener('click', () => images.length && select((cur + 1) % images.length));
+document.addEventListener('keydown', e => {
+  if (/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName) || !images.length) return;
+  if (e.key === 'ArrowLeft') $('#prev').click(); else if (e.key === 'ArrowRight') $('#next').click();
+});
+pv.addEventListener('pointerdown', e => { pv.setPointerCapture(e.pointerId); renderPreview(true); });
+['pointerup', 'pointercancel'].forEach(ev => pv.addEventListener(ev, () => renderPreview()));
+for (const id of ['#pickDir', '#pickFiles', '#pickMore']) $(id).addEventListener('change', e => { addFiles(e.target.files); e.target.value = ''; });
+$('#clear').addEventListener('click', () => { images.forEach(i => i.el.remove()); images = []; cur = -1; showEmpty(); updateCount(); status(''); });
+$('#export').addEventListener('click', exportZip);
+$('#cancel').addEventListener('click', () => { cancelFlag = true; });
+$('#dlOne').addEventListener('click', downloadOne);
+$('#logoFile').addEventListener('change', async e => { const f = e.target.files[0]; e.target.value = ''; if (!f) return; try { await setLogo(await decode(f), true); } catch {} });
+$('#logoRemove').addEventListener('click', () => setLogo(null));
+
+let dragDepth = 0;
+const hasFiles = e => [...(e.dataTransfer?.types || [])].includes('Files');
+window.addEventListener('dragenter', e => { if (!hasFiles(e)) return; e.preventDefault(); dragDepth++; document.body.classList.add('dragging'); });
+window.addEventListener('dragleave', e => { if (!hasFiles(e)) return; if (--dragDepth <= 0) { dragDepth = 0; document.body.classList.remove('dragging'); } });
+window.addEventListener('dragover', e => { if (hasFiles(e)) e.preventDefault(); });
+window.addEventListener('drop', async e => {
+  if (!hasFiles(e)) return; e.preventDefault(); dragDepth = 0; document.body.classList.remove('dragging');
+  if (busy) return;
+  addFiles(await filesFromDrop(e.dataTransfer));
+});
+matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', updateBgMark);
+
+/* ---------- init ---------- */
+applyLang();
+applySettings({ ...defaults(), ...(store.get('fil.settings') || {}) });
+syncUI();
+(async () => {
+  const d = store.get('fil.logo');
+  if (d) { try { const img = new Image(); img.src = d; await img.decode(); await setLogo(img, false); } catch {} }
+})();
+</script>
+</body>
+</html>
